@@ -2,10 +2,14 @@ require 'selenium-webdriver'
 require 'json'
 require 'time'
 
-ELEMENT_TIMEOUT = 5
-RESULT_STAY = 300
-REFRESH_INTERVAL = 120
-DATE_RANGE = 7
+NAME = 'ZHANG'
+ID = '09921100'
+KEY = 'NI'
+
+ELEMENT_TIMEOUT = 10
+RESULT_STAY = 600
+REFRESH_INTERVAL = 150
+DATE_RANGE = 3
 
 def start
     puts "Start checking road test availability at #{Time.now}"
@@ -42,10 +46,10 @@ def check
     @driver.manage.window.maximize
 
     # Login page
-    @driver.find_element(:id, 'mat-input-1').send_keys('30055952')
-    @driver.find_element(:id, 'mat-input-2').send_keys('liu')
+    @driver.find_element(:id, 'mat-input-1').send_keys(ID)
+    @driver.find_element(:id, 'mat-input-2').send_keys(KEY)
     @driver.find_element(:id, 'mat-input-0').click
-    @driver.find_element(:id, 'mat-input-0').send_keys('Liao')
+    @driver.find_element(:id, 'mat-input-0').send_keys(NAME)
     @driver.find_element(:css, '.mat-checkbox-inner-container').click
     @driver.find_element(:css, '.primary').click
 
