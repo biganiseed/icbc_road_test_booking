@@ -1,35 +1,66 @@
 require 'selenium-webdriver'
 require 'json'
 require 'time'
+require 'logger'
 
-ELEMENT_TIMEOUT = 3
+ELEMENT_TIMEOUT = 10
 RESULT_STAY = 600
 DEFAULT_REFRESH_INTERVAL = 150
 DATE_RANGE = 3
 
+module Colorize
+  COLORS = {
+    red: 31,
+    green: 32,
+    yellow: 33,
+    blue: 34,
+    magenta: 35,
+    cyan: 36,
+    white: 37
+  }
+
+  def self.colorize(text, color)
+    color_code = COLORS[color]
+    "\e[#{color_code}m#{text}\e[0m"
+  end
+end
+
 def start
-    puts "Start checking road test availability at #{Time.now}"
+    output = "Start checking road test availability at #{Time.now}"
+    puts output
+    @elogger = Logger.new("error.log")
+    @elogger << "\n" + "=" * 80 + "\n"
+    @elogger << output + "\n"
+    @slogger = Logger.new("success.log")
+    @slogger << "\n" + "=" * 80 + "\n"
+    @slogger << output + "\n"
+
     setup
     count = 0
     while true
         count += 1
-        prompt = "Refresh count: #{count} "
+        prompt = "Refresh count #{count} "
         print prompt
+        success = false
         begin
-            check
+            success = check
         rescue Exception => e
-            puts ""
-            puts e
+            output = ": error "
+            print output
+            prompt += output # for print dots later
+            @elogger << "\nRound #{count}: #{e}"
             cleanup
             setup
         end
 
-        interval = ARGV[3]
-        dots = 80 - prompt.size
-        pause = (interval || DEFAULT_REFRESH_INTERVAL).to_f/dots
-        dots.times do 
-            sleep pause
-            putc "."
+        unless success
+            interval = ARGV[3]
+            dots = 80 - prompt.size
+            pause = (interval || DEFAULT_REFRESH_INTERVAL).to_f/dots
+            dots.times do 
+                sleep pause
+                putc "."
+            end
         end
         puts ""
     end
@@ -87,7 +118,7 @@ def check
         element = wait.until{@driver.find_element(:css, '.appointment-listings')}
     rescue Exception => e
         # puts e
-        return
+        return false
     end
     # Get the text of the first available date
     element = wait.until{@driver.find_element(:css, '.appointment-listings > .date-title')}
@@ -103,11 +134,21 @@ def check
     date_time = Time.parse("#{date} #{time}")
     ## puts "First available date and time: #{date_time}"
     if date_time < current_date_time + DATE_RANGE * 24 * 60 * 60
-        puts "----------------------------------------------------------"
-        puts "#{Time.now}"
-        puts "Found an appointment: #{date} #{time}"
-        puts "Current  appointment: #{current_date} #{current_time}"
-        puts "----------------------------------------------------------"
+        output = "----------------------------------------------------------"
+        puts "\n" + output
+        @slogger << output + "\n"
+        output = "#{Time.now}"
+        puts output
+        @slogger << output + "\n"
+        output = "Found an appointment: #{date} #{time}"
+        puts output
+        @slogger << output + "\n"
+        output = "Current  appointment: #{current_date} #{current_time}"
+        puts output
+        @slogger << output + "\n"
+        output = "----------------------------------------------------------"
+        puts output
+        @slogger << output + "\n"
         # Start booking
         # Click the time button
         element = @driver.find_element(:css, '#mat-button-toggle-1-button')
@@ -136,7 +177,8 @@ def check
         element.click
         # Wait for manually inputting the verification code
         sleep RESULT_STAY
+        return true
     end
+    return false
 end
-
 start
