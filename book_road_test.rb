@@ -2,13 +2,9 @@ require 'selenium-webdriver'
 require 'json'
 require 'time'
 
-NAME = 'ZHANG'
-ID = '09921100'
-KEY = 'NI'
-
-ELEMENT_TIMEOUT = 10
+ELEMENT_TIMEOUT = 3
 RESULT_STAY = 600
-REFRESH_INTERVAL = 150
+DEFAULT_REFRESH_INTERVAL = 150
 DATE_RANGE = 3
 
 def start
@@ -17,16 +13,25 @@ def start
     count = 0
     while true
         count += 1
-        puts "Refresh count: #{count}"
+        prompt = "Refresh count: #{count} "
+        print prompt
         begin
             check
         rescue Exception => e
+            puts ""
             puts e
             cleanup
             setup
         end
 
-        sleep REFRESH_INTERVAL
+        interval = ARGV[3]
+        dots = 80 - prompt.size
+        pause = (interval || DEFAULT_REFRESH_INTERVAL).to_f/dots
+        dots.times do 
+            sleep pause
+            putc "."
+        end
+        puts ""
     end
 end
 
@@ -46,10 +51,11 @@ def check
     @driver.manage.window.maximize
 
     # Login page
-    @driver.find_element(:id, 'mat-input-1').send_keys(ID)
-    @driver.find_element(:id, 'mat-input-2').send_keys(KEY)
+    name,id,key = ARGV[0,3]
+    @driver.find_element(:id, 'mat-input-1').send_keys(id)
+    @driver.find_element(:id, 'mat-input-2').send_keys(key)
     @driver.find_element(:id, 'mat-input-0').click
-    @driver.find_element(:id, 'mat-input-0').send_keys(NAME)
+    @driver.find_element(:id, 'mat-input-0').send_keys(name)
     @driver.find_element(:css, '.mat-checkbox-inner-container').click
     @driver.find_element(:css, '.primary').click
 
