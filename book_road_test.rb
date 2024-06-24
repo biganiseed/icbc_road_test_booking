@@ -75,22 +75,27 @@ def check
     element.click
     element.send_keys('burnaby claim centre')
     # Click "Burnaby claim centre"
-    wait.until{@driver.find_element(:css, '#mat-option-228 > .mat-option-text')}.click
-    @driver.execute_script("window.scrollTo(0,0)")
-    element = wait.until{@driver.find_element(:css, '.appointment-listings')}
+    wait.until{@driver.find_element(:css, '#mat-autocomplete-0 > .mat-option:first-child')}.click
+    begin
+        @driver.execute_script("window.scrollTo(0,0)")
+        element = wait.until{@driver.find_element(:css, '.appointment-listings')}
+    rescue Exception => e
+        # puts e
+        return
+    end
     # Get the text of the first available date
     element = wait.until{@driver.find_element(:css, '.appointment-listings > .date-title')}
-# puts element.html
+    ## puts element.html
     date = element.text
-    # puts "First available date: #{date}"
+    ## puts "First available date: #{date}"
     # Get the text of the first available time
     element = @driver.find_element(:css, '#mat-button-toggle-1-button > .mat-button-toggle-label-content')
     time = element.text
-    # puts "First available time: #{time}"
+    ## puts "First available time: #{time}"
     # Convert the date and time string to Time object
     # date_time = Time.strptime("#{date} #{time}", "%A, %B %d, %Y %I:%M %p")
     date_time = Time.parse("#{date} #{time}")
-    # puts "First available date and time: #{date_time}"
+    ## puts "First available date and time: #{date_time}"
     if date_time < current_date_time + DATE_RANGE * 24 * 60 * 60
         puts "----------------------------------------------------------"
         puts "#{Time.now}"
