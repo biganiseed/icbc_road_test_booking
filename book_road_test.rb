@@ -6,7 +6,8 @@ require 'logger'
 ELEMENT_TIMEOUT = 10
 RESULT_STAY = 600
 DEFAULT_REFRESH_INTERVAL = 150
-DATE_RANGE = 3
+DEFAULT_DATE_RANGE = 0
+MAX_DUPLICATE_TIMES = 2
 
 module Colorize
   COLORS = {
@@ -68,7 +69,9 @@ end
 
 def setup
     @driver = Selenium::WebDriver.for :chrome
-    @vars = {}
+    #@vars = {}
+    @previous_date_time = 0
+    @duplicate_count = 0
 end
 
 def cleanup
@@ -79,7 +82,7 @@ def check
     wait = Selenium::WebDriver::Wait.new(timeout: ELEMENT_TIMEOUT) # seconds
     @driver.get('https://onlinebusiness.icbc.com/webdeas-ui/login;type=driver')
     # @driver.manage.window.resize_to(1470, 913)
-    @driver.manage.window.maximize
+    # @driver.manage.window.maximize
 
     # Login page
     name,id,key = ARGV[0,3]
@@ -111,6 +114,7 @@ def check
     element = wait.until{@driver.find_element(:css, '#mat-input-4')}
     element.click
     element.send_keys('burnaby claim centre')
+    sleep 1
     # Click "Burnaby claim centre"
     wait.until{@driver.find_element(:css, '#mat-autocomplete-0 > .mat-option:first-child')}.click
     begin
@@ -133,7 +137,23 @@ def check
     # date_time = Time.strptime("#{date} #{time}", "%A, %B %d, %Y %I:%M %p")
     date_time = Time.parse("#{date} #{time}")
     ## puts "First available date and time: #{date_time}"
-    if date_time < current_date_time + DATE_RANGE * 24 * 60 * 60
+    date_range = ARGV[4]
+    if date_time < current_date_time + (date_range || DEFAULT_DATE_RANGE).to_i * 24 * 60 * 60
+	# Avoid notify the same appointment repeatedly
+	if date_time == (@previous_date_time)
+	    @duplicate_count += 1
+	else
+	    @duplicate_count = 0
+	end
+	@previous_date_time = date_time
+	if @duplicate_count >= MAX_DUPLICATE_TIMES
+            output = "#{Time.now}"
+            print output
+	    output = " Duplicate appointment"
+            puts output
+            @slogger << output + "\n"
+	    return true
+	end	
         output = "----------------------------------------------------------"
         puts "\n" + output
         @slogger << output + "\n"
