@@ -1,3 +1,7 @@
+# Usage: ruby book_road_test.rb zhang 09921100 ni
+# Optional arguments: interval(seconds), date_range, max_date, min_date
+# E.g. ruby book_road_test.rb zhang 09921100 ni 150 2 2024-9-1 2024-8-1
+
 require 'selenium-webdriver'
 require 'json'
 require 'time'
@@ -40,15 +44,15 @@ def start
     count = 0
     while true
         count += 1
-        prompt = "Refresh count #{count} "
-        print prompt
+        @prompt = "Refresh count #{count} "
+        print @prompt
         success = false
         begin
             success = check
         rescue Exception => e
             output = ": error "
             print output
-            prompt += output # for print dots later
+            @prompt += output # for print dots later
             @elogger << "\nRound #{count}: #{e}"
             cleanup
             setup
@@ -56,7 +60,7 @@ def start
 
         unless success
             interval = ARGV[3]
-            dots = 80 - prompt.size
+            dots = 80 - @prompt.size
             pause = (interval || DEFAULT_REFRESH_INTERVAL).to_f/dots
             dots.times do 
                 sleep pause
@@ -137,8 +141,16 @@ def check
     # date_time = Time.strptime("#{date} #{time}", "%A, %B %d, %Y %I:%M %p")
     date_time = Time.parse("#{date} #{time}")
     ## puts "First available date and time: #{date_time}"
-    date_range = ARGV[4]
-    if date_time < current_date_time + (date_range || DEFAULT_DATE_RANGE).to_i * 24 * 60 * 60
+    time_range = (ARGV[4] || DEFAULT_DATE_RANGE).to_i * 24 * 60 * 60
+    ext_date_time = current_date_time + time_range
+    max_date = Time.parse(ARGV[5] || ext_date_time.to_s)
+    min_date = Time.parse(ARGV[6] || Time.now.to_date.to_s)
+    if date_time <= ext_date_time || date_time <= max_date # Maybe valid, output it.
+        output = ": #{date_time}"
+        @prompt += output
+        print output
+    end
+    if date_time <= max_date && date_time <= ext_date_time && date_time > min_date # Valid appointment
 	# Avoid notify the same appointment repeatedly
 	if date_time == (@previous_date_time)
 	    @duplicate_count += 1
@@ -152,6 +164,7 @@ def check
 	    output = " Duplicate appointment"
             puts output
             @slogger << output + "\n"
+            sleep RESULT_STAY
 	    return true
 	end	
         output = "----------------------------------------------------------"
